@@ -6,6 +6,6 @@ LDADD =		-lpthread
 DPADD =		${LIBPTHREAD}
 
 run-regress-sigpthread:
-	./sigpthread -t 2
+	./sigpthread -t 3 -k 1 -u 1
 
 .include <bsd.regress.mk>

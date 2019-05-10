@@ -32,14 +32,16 @@ void *runner(void *);
 void __dead
 usage(void)
 {
-	fprintf(stderr, "sigpthread -t threads\n"
+	fprintf(stderr, "sigpthread [-k kill] -t threads [-u unblock]\n"
 	    "    -k kill        thread to kill, else process\n"
 	    "    -t threads     number of threads to run\n"
+	    "    -u unblock     thread to unblock\n"
 	);
 	exit(1);
 }
 
-int tmax;
+int tmax, tunblock = -1;
+sigset_t set, oset;
 pthread_t *threads;
 volatile sig_atomic_t *signaled;
 
@@ -52,7 +54,7 @@ main(int argc, char *argv[])
 	void *val;
 	const char *errstr;
 
-	while ((ch = getopt(argc, argv, "k:t:")) != -1) {
+	while ((ch = getopt(argc, argv, "k:t:u:")) != -1) {
 		switch (ch) {
 		case 'k':
 			tkill = strtonum(optarg, 0, INT_MAX, &errstr);
@@ -66,26 +68,51 @@ main(int argc, char *argv[])
 				errx(1, "number of threads is %s: %s",
 				    errstr, optarg);
 			break;
+		case 'u':
+			tunblock = strtonum(optarg, 0, INT_MAX, &errstr);
+			if (errstr != NULL)
+				errx(1, "thread to unblock is %s: %s",
+				    errstr, optarg);
+			break;
 		default:
 			usage();
 		}
 	}
 	argc -= optind;
 	argv += optind;
+	if (argc != 0)
+		errx(1, "more arguments than expected");
 	if (tmax == 0)
 		errx(1, "number of threads required");
 	if (tkill >= tmax)
 		errx(1, "thread to kill greater than number of threads");
+	if (tunblock >= tmax)
+		errx(1, "thread to unblock greater than number of threads");
 
 	/* Make sure that we do not hang forever. */
 	ret = alarm(10);
 	if (ret == -1)
 		err(1, "alarm");
 
+	if (sigemptyset(&set) == -1)
+		err(1, "sigemptyset");
+	if (sigaddset(&set, SIGUSR1) == -1)
+		err(1, "sigaddset");
+	if (sigaddset(&set, SIGUSR2) == -1)
+		err(1, "sigaddset");
+	/* Block both SIGUSR1 and SIGUSR2 with set. */
+	if (sigprocmask(SIG_BLOCK, &set, &oset) == -1)
+		err(1, "sigprocmask");
+	/* Prepare to wait for SIGUSR1, but block SIGUSR2 with oset. */
+	if (sigaddset(&oset, SIGUSR2) == -1)
+		err(1, "sigaddset");
+
 	memset(&act, 0, sizeof(act));
 	act.sa_handler = handler;
 	if (sigaction(SIGUSR1, &act, NULL) == -1)
-		err(1, "sigaction");
+		err(1, "sigaction SIGUSR1");
+	if (sigaction(SIGUSR2, &act, NULL) == -1)
+		err(1, "sigaction SIGUSR2");
 
 	signaled = calloc(tmax, sizeof(*signaled));
 	if (signaled == NULL)
@@ -104,13 +131,21 @@ main(int argc, char *argv[])
 	/* Handle the main thread like thread 0. */
 	threads[0] = pthread_self();
 
+	/* All threads are still alive. */
 	if (tkill < 0) {
-		if (raise(SIGUSR1) == -1)
+		if (raise(SIGUSR2) == -1)
 			err(1, "raise");
 	} else {
-		errno = pthread_kill(threads[tkill], SIGUSR1);
+		errno = pthread_kill(threads[tkill], SIGUSR2);
 		if (errno)
-			err(1, "pthread_kill %d", tnum);
+			err(1, "pthread_kill %d SIGUSR2", tnum);
+	}
+
+	/* Sending SIGUSR1 means threads can continue and finish. */
+	for (tnum = 0; tnum < tmax; tnum++) {
+		errno = pthread_kill(threads[tnum], SIGUSR1);
+		if (errno)
+			err(1, "pthread_kill %d SIGUSR1", tnum);
 	}
 
 	val = runner(0);
@@ -127,7 +162,7 @@ main(int argc, char *argv[])
 	free(threads);
 
 	for (tnum = 0; tnum < tmax; tnum++) {
-		if (signaled[tnum])
+		if (signaled[tnum] == SIGUSR2)
 			printf("signal %d\n", tnum);
 	}
 	free((void *)signaled);
@@ -144,7 +179,7 @@ handler(int sig)
 	tid = pthread_self();
 	for (tnum = 0; tnum < tmax; tnum++) {
 		if (tid == threads[tnum])
-			signaled[tnum] = 1;
+			signaled[tnum] = sig;
 	}
 }
 
@@ -153,6 +188,17 @@ runner(void *arg)
 {
 	int tnum = (int)arg;
 
-	printf("run %d\n", tnum);
+	/*
+	 * Wait for SIGUSER1, continue to block SIGUSER2.
+	 * The thread is still running before it gets SIGUSER1.
+	 */
+	if (sigsuspend(&oset) != -1 || errno != EINTR)
+		err(1, "sigsuspend");
+	if (tnum == tunblock) {
+		/* Also unblock SIGUSER2, if this thread should get it. */
+		if (pthread_sigmask(SIG_UNBLOCK, &set, NULL) == -1)
+			err(1, "pthread_sigmask");
+	}
+
 	return (void *)0;
 }

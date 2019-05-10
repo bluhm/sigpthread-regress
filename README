@@ -1,1 +1,1 @@
-Test the interaction of signals with multiple pthreads.
+Test the interaction of signals with multiple posix threads.

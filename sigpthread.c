@@ -133,8 +133,8 @@ main(int argc, char *argv[])
 
 	/* All threads are still alive. */
 	if (tkill < 0) {
-		if (raise(SIGUSR2) == -1)
-			err(1, "raise");
+		if (kill(getpid(), SIGUSR2) == -1)
+			err(1, "kill SIGUSR2");
 	} else {
 		errno = pthread_kill(threads[tkill], SIGUSR2);
 		if (errno)
@@ -190,7 +190,7 @@ runner(void *arg)
 
 	/*
 	 * Wait for SIGUSER1, continue to block SIGUSER2.
-	 * The thread is still running before it gets SIGUSER1.
+	 * The thread is keeps running until it gets SIGUSER1.
 	 */
 	if (sigsuspend(&oset) != -1 || errno != EINTR)
 		err(1, "sigsuspend");

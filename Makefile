@@ -24,6 +24,12 @@ run-thread-3-unblock-$u-sleep-thread:
 	@echo '\n======== $@ ========'
 	./sigpthread -S -t 3 -u $u >out
 	grep 'signal $u' out
+
+REGRESS_TARGETS +=	run-thread-3-unblock-$u-sleep-unblock
+run-thread-3-unblock-$u-sleep-unblock:
+	@echo '\n======== $@ ========'
+	./sigpthread -t 3 -U -u $u >out
+	grep 'signal $u' out
 .endfor
 
 ${REGRESS_TARGETS}: ${PROG}

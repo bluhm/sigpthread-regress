@@ -32,18 +32,19 @@ void *runner(void *);
 void __dead
 usage(void)
 {
-	fprintf(stderr, "sigpthread [-Ss] [-k kill] -t threads [-u unblock]\n"
+	fprintf(stderr, "sigpthread [-SsU] [-k kill] -t threads [-u unblock]\n"
 	    "    -k kill        thread to kill, else process\n"
-	    "    -t threads     number of threads to run\n"
 	    "    -S             sleep in each thread before suspend\n"
 	    "    -s             sleep in main before kill\n"
+	    "    -t threads     number of threads to run\n"
+	    "    -U             sleep in thread before unblock\n"
 	    "    -u unblock     thread to unblock\n"
 	);
 	exit(1);
 }
 
 int tmax, tunblock = -1;
-int sleepthread, sleepmain;
+int sleepthread, sleepmain, sleepunblock;
 sigset_t set, oset;
 pthread_t *threads;
 volatile sig_atomic_t *signaled;
@@ -57,7 +58,7 @@ main(int argc, char *argv[])
 	void *val;
 	const char *errstr;
 
-	while ((ch = getopt(argc, argv, "k:Sst:u:")) != -1) {
+	while ((ch = getopt(argc, argv, "k:Sst:Uu:")) != -1) {
 		switch (ch) {
 		case 'k':
 			tkill = strtonum(optarg, 0, INT_MAX, &errstr);
@@ -76,6 +77,9 @@ main(int argc, char *argv[])
 			if (errstr != NULL)
 				errx(1, "number of threads is %s: %s",
 				    errstr, optarg);
+			break;
+		case 'U':
+			sleepunblock = 1;
 			break;
 		case 'u':
 			tunblock = strtonum(optarg, 0, INT_MAX, &errstr);
@@ -140,7 +144,7 @@ main(int argc, char *argv[])
 	/* Handle the main thread like thread 0. */
 	threads[0] = pthread_self();
 
-	/* Test what hapens if thread is running when killed. */
+	/* Test what happens if thread is running when killed. */
 	if (sleepmain)
 		sleep(1);
 
@@ -201,7 +205,7 @@ runner(void *arg)
 {
 	int tnum = (int)arg;
 
-	/* Test what hapens if thread is running when killed. */
+	/* Test what happens if thread is running when killed. */
 	if (sleepthread)
 		sleep(1);
 
@@ -212,6 +216,10 @@ runner(void *arg)
 	if (sigsuspend(&oset) != -1 || errno != EINTR)
 		err(1, "sigsuspend");
 	if (tnum == tunblock) {
+		/* Test what happens if other threads exit before unblock. */
+		if (sleepunblock)
+			sleep(1);
+
 		/* Also unblock SIGUSER2, if this thread should get it. */
 		if (pthread_sigmask(SIG_UNBLOCK, &set, NULL) == -1)
 			err(1, "pthread_sigmask");

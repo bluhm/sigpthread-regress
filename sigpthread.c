@@ -190,14 +190,29 @@ main(int argc, char *argv[])
 void
 handler(int sig)
 {
-	int tnum;
 	pthread_t tid;
+	int tnum;
 
 	tid = pthread_self();
 	for (tnum = 0; tnum < tmax; tnum++) {
 		if (tid == threads[tnum])
-			signaled[tnum] = sig;
+			break;
 	}
+	switch (sig) {
+	case SIGUSR1:
+		if (signaled[tnum] != 0)
+			errx(1, "SIGUSR1 after signal %d thread %d",
+			    signaled[tnum], tnum);
+		break;
+	case SIGUSR2:
+		if (signaled[tnum] != SIGUSR1)
+			errx(1, "SIGUSR2 after signal %d thread %d",
+			    signaled[tnum], tnum);
+		break;
+	default:
+		errx(1, "unexpected signal %d thread %d", sig, tnum);
+	}
+	signaled[tnum] = sig;
 }
 
 void *

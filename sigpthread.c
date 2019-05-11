@@ -32,15 +32,18 @@ void *runner(void *);
 void __dead
 usage(void)
 {
-	fprintf(stderr, "sigpthread [-k kill] -t threads [-u unblock]\n"
+	fprintf(stderr, "sigpthread [-Ss] [-k kill] -t threads [-u unblock]\n"
 	    "    -k kill        thread to kill, else process\n"
 	    "    -t threads     number of threads to run\n"
+	    "    -S             sleep in each thread before suspend\n"
+	    "    -s             sleep in main before kill\n"
 	    "    -u unblock     thread to unblock\n"
 	);
 	exit(1);
 }
 
 int tmax, tunblock = -1;
+int sleepthread, sleepmain;
 sigset_t set, oset;
 pthread_t *threads;
 volatile sig_atomic_t *signaled;
@@ -54,13 +57,19 @@ main(int argc, char *argv[])
 	void *val;
 	const char *errstr;
 
-	while ((ch = getopt(argc, argv, "k:t:u:")) != -1) {
+	while ((ch = getopt(argc, argv, "k:Sst:u:")) != -1) {
 		switch (ch) {
 		case 'k':
 			tkill = strtonum(optarg, 0, INT_MAX, &errstr);
 			if (errstr != NULL)
 				errx(1, "thread to kill is %s: %s",
 				    errstr, optarg);
+			break;
+		case 'S':
+			sleepthread = 1;
+			break;
+		case 's':
+			sleepmain = 1;
 			break;
 		case 't':
 			tmax = strtonum(optarg, 1, INT_MAX, &errstr);
@@ -131,6 +140,10 @@ main(int argc, char *argv[])
 	/* Handle the main thread like thread 0. */
 	threads[0] = pthread_self();
 
+	/* Test what hapens if thread is running when killed. */
+	if (sleepmain)
+		sleep(1);
+
 	/* All threads are still alive. */
 	if (tkill < 0) {
 		if (kill(getpid(), SIGUSR2) == -1)
@@ -187,6 +200,10 @@ void *
 runner(void *arg)
 {
 	int tnum = (int)arg;
+
+	/* Test what hapens if thread is running when killed. */
+	if (sleepthread)
+		sleep(1);
 
 	/*
 	 * Wait for SIGUSER1, continue to block SIGUSER2.

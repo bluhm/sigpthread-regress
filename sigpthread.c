@@ -32,7 +32,8 @@ void *runner(void *);
 void __dead
 usage(void)
 {
-	fprintf(stderr, "sigpthread [-SsU] [-k kill] -t threads [-u unblock]\n"
+	fprintf(stderr, "sigpthread [-bSsU] [-k kill] -t threads [-u unblock]\n"
+	    "    -b             block signal to make it pending\n"
 	    "    -k kill        thread to kill, else process\n"
 	    "    -S             sleep in each thread before suspend\n"
 	    "    -s             sleep in main before kill\n"
@@ -43,6 +44,7 @@ usage(void)
 	exit(1);
 }
 
+int blocksignal = 0;
 int threadmax, threadunblock = -1;
 int sleepthread, sleepmain, sleepunblock;
 sigset_t set, oset;
@@ -58,8 +60,11 @@ main(int argc, char *argv[])
 	void *val;
 	const char *errstr;
 
-	while ((ch = getopt(argc, argv, "k:Sst:Uu:")) != -1) {
+	while ((ch = getopt(argc, argv, "bk:Sst:Uu:")) != -1) {
 		switch (ch) {
+		case 'b':
+			blocksignal = 1;
+			break;
 		case 'k':
 			threadkill = strtonum(optarg, 0, INT_MAX, &errstr);
 			if (errstr != NULL)
@@ -111,14 +116,22 @@ main(int argc, char *argv[])
 		err(1, "sigemptyset");
 	if (sigaddset(&set, SIGUSR1) == -1)
 		err(1, "sigaddset");
-	if (sigaddset(&set, SIGUSR2) == -1)
-		err(1, "sigaddset");
+	/* Either deliver SIGUSR2 immediately, or mark it pending. */
+	if (blocksignal) {
+		if (sigaddset(&set, SIGUSR2) == -1)
+			err(1, "sigaddset");
+	}
 	/* Block both SIGUSR1 and SIGUSR2 with set. */
 	if (sigprocmask(SIG_BLOCK, &set, &oset) == -1)
 		err(1, "sigprocmask");
 	/* Prepare to wait for SIGUSR1, but block SIGUSR2 with oset. */
 	if (sigaddset(&oset, SIGUSR2) == -1)
 		err(1, "sigaddset");
+	if (!blocksignal) {
+		/* SIGUSR2 may be blocked by oset, make sure it unblocks. */
+		if (sigaddset(&set, SIGUSR2) == -1)
+			err(1, "sigaddset");
+	}
 
 	memset(&act, 0, sizeof(act));
 	act.sa_handler = handler;
@@ -200,19 +213,13 @@ handler(int sig)
 	}
 	switch (sig) {
 	case SIGUSR1:
-		if (signaled[tnum] != 0)
-			errx(1, "SIGUSR1 after signal %d thread %d",
-			    signaled[tnum], tnum);
 		break;
 	case SIGUSR2:
-		if (signaled[tnum] != SIGUSR1)
-			errx(1, "SIGUSR2 after signal %d thread %d",
-			    signaled[tnum], tnum);
+		signaled[tnum] = sig;
 		break;
 	default:
 		errx(1, "unexpected signal %d thread %d", sig, tnum);
 	}
-	signaled[tnum] = sig;
 }
 
 void *

@@ -7,60 +7,60 @@ DPADD =		${LIBPTHREAD}
 CLEANFILES +=	out
 
 .for u in 0 1 2
-REGRESS_TARGETS +=	run-thread-3-unblock-$u
-run-thread-3-unblock-$u:
+REGRESS_TARGETS +=	run-block-thread-3-unblock-$u
+run-block-thread-3-unblock-$u:
 	@echo '\n======== $@ ========'
-	./sigpthread -t 3 -u $u >out
+	./sigpthread -b -t 3 -u $u >out
 	grep 'signal $u' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-thread-3-unblock-$u-sleep-main
-run-thread-3-unblock-$u-sleep-main:
+REGRESS_TARGETS +=	run-block-thread-3-unblock-$u-sleep-main
+run-block-thread-3-unblock-$u-sleep-main:
 	@echo '\n======== $@ ========'
-	./sigpthread -s -t 3 -u $u >out
+	./sigpthread -b -s -t 3 -u $u >out
 	grep 'signal $u' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-thread-3-unblock-$u-sleep-thread
-run-thread-3-unblock-$u-sleep-thread:
+REGRESS_TARGETS +=	run-block-thread-3-unblock-$u-sleep-thread
+run-block-thread-3-unblock-$u-sleep-thread:
 	@echo '\n======== $@ ========'
-	./sigpthread -S -t 3 -u $u >out
+	./sigpthread -b -S -t 3 -u $u >out
 	grep 'signal $u' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-thread-3-unblock-$u-sleep-unblock
-run-thread-3-unblock-$u-sleep-unblock:
+REGRESS_TARGETS +=	run-block-thread-3-unblock-$u-sleep-unblock
+run-block-thread-3-unblock-$u-sleep-unblock:
 	@echo '\n======== $@ ========'
-	./sigpthread -t 3 -U -u $u >out
+	./sigpthread -b -t 3 -U -u $u >out
 	grep 'signal $u' out
 	test `wc -l <out` = 1
 .endfor
 
-REGRESS_TARGETS +=	run-thread-3
-run-thread-3:
+REGRESS_TARGETS +=	run-block-thread-3
+run-block-thread-3:
 	@echo '\n======== $@ ========'
-	./sigpthread -t 3 >out
+	./sigpthread -b -t 3 >out
 	grep 'signal [0-2]' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-thread-3-sleep-main
-run-thread-3-sleep-main:
+REGRESS_TARGETS +=	run-block-thread-3-sleep-main
+run-block-thread-3-sleep-main:
 	@echo '\n======== $@ ========'
-	./sigpthread -s -t 3 >out
+	./sigpthread -b -s -t 3 >out
 	grep 'signal [0-2]' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-thread-3-sleep-thread
-run-thread-3-sleep-thread:
+REGRESS_TARGETS +=	run-block-thread-3-sleep-thread
+run-block-thread-3-sleep-thread:
 	@echo '\n======== $@ ========'
-	./sigpthread -S -t 3 >out
+	./sigpthread -b -S -t 3 >out
 	grep 'signal [0-2]' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-thread-3-sleep-unblock
-run-thread-3-sleep-unblock:
+REGRESS_TARGETS +=	run-block-thread-3-sleep-unblock
+run-block-thread-3-sleep-unblock:
 	@echo '\n======== $@ ========'
-	./sigpthread -t 3 -U >out
+	./sigpthread -b -t 3 -U >out
 	grep 'signal [0-2]' out
 	test `wc -l <out` = 1
 

@@ -36,6 +36,34 @@ run-thread-3-unblock-$u-sleep-unblock:
 	test `wc -l <out` = 1
 .endfor
 
+REGRESS_TARGETS +=	run-thread-3
+run-thread-3:
+	@echo '\n======== $@ ========'
+	./sigpthread -t 3 >out
+	grep 'signal [0-2]' out
+	test `wc -l <out` = 1
+
+REGRESS_TARGETS +=	run-thread-3-sleep-main
+run-thread-3-sleep-main:
+	@echo '\n======== $@ ========'
+	./sigpthread -s -t 3 >out
+	grep 'signal [0-2]' out
+	test `wc -l <out` = 1
+
+REGRESS_TARGETS +=	run-thread-3-sleep-thread
+run-thread-3-sleep-thread:
+	@echo '\n======== $@ ========'
+	./sigpthread -S -t 3 >out
+	grep 'signal [0-2]' out
+	test `wc -l <out` = 1
+
+REGRESS_TARGETS +=	run-thread-3-sleep-unblock
+run-thread-3-sleep-unblock:
+	@echo '\n======== $@ ========'
+	./sigpthread -t 3 -U >out
+	grep 'signal [0-2]' out
+	test `wc -l <out` = 1
+
 ${REGRESS_TARGETS}: ${PROG}
 
 .include <bsd.regress.mk>

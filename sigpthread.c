@@ -38,7 +38,7 @@ usage(void)
 	    "    -s             sleep in main before kill\n"
 	    "    -t threads     number of threads to run\n"
 	    "    -U             sleep in thread before unblock\n"
-	    "    -u unblock     thread to unblock\n"
+	    "    -u unblock     thread to unblock, else unblock all\n"
 	);
 	exit(1);
 }
@@ -230,7 +230,7 @@ runner(void *arg)
 	 */
 	if (sigsuspend(&oset) != -1 || errno != EINTR)
 		err(1, "sigsuspend");
-	if (tnum == threadunblock) {
+	if (threadunblock < 0 || tnum == threadunblock) {
 		/* Test what happens if other threads exit before unblock. */
 		if (sleepunblock)
 			sleep(1);

@@ -192,7 +192,9 @@ main(int argc, char *argv[])
 	free(threads);
 
 	for (tnum = 0; tnum < threadmax; tnum++) {
-		if (signaled[tnum] == SIGUSR2)
+		int i;
+
+		for (i = 0; i < signaled[tnum]; i++)
 			printf("signal %d\n", tnum);
 	}
 	free((void *)signaled);
@@ -215,7 +217,7 @@ handler(int sig)
 	case SIGUSR1:
 		break;
 	case SIGUSR2:
-		signaled[tnum] = sig;
+		signaled[tnum]++;
 		break;
 	default:
 		errx(1, "unexpected signal %d thread %d", sig, tnum);

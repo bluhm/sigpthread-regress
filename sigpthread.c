@@ -43,7 +43,7 @@ usage(void)
 	exit(1);
 }
 
-int tmax, tunblock = -1;
+int threadmax, threadunblock = -1;
 int sleepthread, sleepmain, sleepunblock;
 sigset_t set, oset;
 pthread_t *threads;
@@ -53,7 +53,7 @@ int
 main(int argc, char *argv[])
 {
 	struct sigaction act;
-	int ch, ret, tnum, tkill = -1;
+	int ch, ret, tnum, threadkill = -1;
 	long arg;
 	void *val;
 	const char *errstr;
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
 	while ((ch = getopt(argc, argv, "k:Sst:Uu:")) != -1) {
 		switch (ch) {
 		case 'k':
-			tkill = strtonum(optarg, 0, INT_MAX, &errstr);
+			threadkill = strtonum(optarg, 0, INT_MAX, &errstr);
 			if (errstr != NULL)
 				errx(1, "thread to kill is %s: %s",
 				    errstr, optarg);
@@ -73,7 +73,7 @@ main(int argc, char *argv[])
 			sleepmain = 1;
 			break;
 		case 't':
-			tmax = strtonum(optarg, 1, INT_MAX, &errstr);
+			threadmax = strtonum(optarg, 1, INT_MAX, &errstr);
 			if (errstr != NULL)
 				errx(1, "number of threads is %s: %s",
 				    errstr, optarg);
@@ -82,7 +82,7 @@ main(int argc, char *argv[])
 			sleepunblock = 1;
 			break;
 		case 'u':
-			tunblock = strtonum(optarg, 0, INT_MAX, &errstr);
+			threadunblock = strtonum(optarg, 0, INT_MAX, &errstr);
 			if (errstr != NULL)
 				errx(1, "thread to unblock is %s: %s",
 				    errstr, optarg);
@@ -95,11 +95,11 @@ main(int argc, char *argv[])
 	argv += optind;
 	if (argc != 0)
 		errx(1, "more arguments than expected");
-	if (tmax == 0)
+	if (threadmax == 0)
 		errx(1, "number of threads required");
-	if (tkill >= tmax)
+	if (threadkill >= threadmax)
 		errx(1, "thread to kill greater than number of threads");
-	if (tunblock >= tmax)
+	if (threadunblock >= threadmax)
 		errx(1, "thread to unblock greater than number of threads");
 
 	/* Make sure that we do not hang forever. */
@@ -127,14 +127,14 @@ main(int argc, char *argv[])
 	if (sigaction(SIGUSR2, &act, NULL) == -1)
 		err(1, "sigaction SIGUSR2");
 
-	signaled = calloc(tmax, sizeof(*signaled));
+	signaled = calloc(threadmax, sizeof(*signaled));
 	if (signaled == NULL)
 		err(1, "calloc signaled");
-	threads = calloc(tmax, sizeof(*threads));
+	threads = calloc(threadmax, sizeof(*threads));
 	if (threads == NULL)
 		err(1, "calloc threads");
 
-	for (tnum = 1; tnum < tmax; tnum++) {
+	for (tnum = 1; tnum < threadmax; tnum++) {
 		arg = tnum;
 		errno = pthread_create(&threads[tnum], NULL, runner,
 		    (void *)arg);
@@ -149,17 +149,17 @@ main(int argc, char *argv[])
 		sleep(1);
 
 	/* All threads are still alive. */
-	if (tkill < 0) {
+	if (threadkill < 0) {
 		if (kill(getpid(), SIGUSR2) == -1)
 			err(1, "kill SIGUSR2");
 	} else {
-		errno = pthread_kill(threads[tkill], SIGUSR2);
+		errno = pthread_kill(threads[threadkill], SIGUSR2);
 		if (errno)
 			err(1, "pthread_kill %d SIGUSR2", tnum);
 	}
 
 	/* Sending SIGUSR1 means threads can continue and finish. */
-	for (tnum = 0; tnum < tmax; tnum++) {
+	for (tnum = 0; tnum < threadmax; tnum++) {
 		errno = pthread_kill(threads[tnum], SIGUSR1);
 		if (errno)
 			err(1, "pthread_kill %d SIGUSR1", tnum);
@@ -168,7 +168,7 @@ main(int argc, char *argv[])
 	val = runner(0);
 	ret = (int)val;
 
-	for (tnum = 1; tnum < tmax; tnum++) {
+	for (tnum = 1; tnum < threadmax; tnum++) {
 		errno = pthread_join(threads[tnum], &val);
 		if (errno)
 			err(1, "pthread_join %d", tnum);
@@ -178,7 +178,7 @@ main(int argc, char *argv[])
 	}
 	free(threads);
 
-	for (tnum = 0; tnum < tmax; tnum++) {
+	for (tnum = 0; tnum < threadmax; tnum++) {
 		if (signaled[tnum] == SIGUSR2)
 			printf("signal %d\n", tnum);
 	}
@@ -194,7 +194,7 @@ handler(int sig)
 	int tnum;
 
 	tid = pthread_self();
-	for (tnum = 0; tnum < tmax; tnum++) {
+	for (tnum = 0; tnum < threadmax; tnum++) {
 		if (tid == threads[tnum])
 			break;
 	}
@@ -230,7 +230,7 @@ runner(void *arg)
 	 */
 	if (sigsuspend(&oset) != -1 || errno != EINTR)
 		err(1, "sigsuspend");
-	if (tnum == tunblock) {
+	if (tnum == threadunblock) {
 		/* Test what happens if other threads exit before unblock. */
 		if (sleepunblock)
 			sleep(1);

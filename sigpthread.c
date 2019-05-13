@@ -122,6 +122,8 @@ main(int argc, char *argv[])
 		errx(1, "do not wait in thread without blocked signals");
 	if (threadunblock >= 0 && threadwaiter >= 0)
 		errx(1, "do not unblock and wait together");
+	if (sleepunblock && threadwaiter >= 0)
+		errx(1, "do not sleep before unblock and wait together");
 
 	/* Make sure that we do not hang forever. */
 	ret = alarm(10);
@@ -254,7 +256,7 @@ runner(void *arg)
 		int sig;
 
 		if (sigwait(&set, &sig) != 0)
-			err(1, "sigwait");
+			err(1, "sigwait thread %d", tnum);
 		if (sig != SIGUSR2)
 			errx(1, "unexpected signal %d thread %d", sig, tnum);
 		signaled[tnum]++;
@@ -265,15 +267,15 @@ runner(void *arg)
 	 * The thread is keeps running until it gets SIGUSER1.
 	 */
 	if (sigsuspend(&oset) != -1 || errno != EINTR)
-		err(1, "sigsuspend");
-	if (threadunblock < 0 || tnum == threadunblock) {
+		err(1, "sigsuspend thread %d", tnum);
+	if ((threadunblock < 0 || tnum == threadunblock) && threadwaiter < 0) {
 		/* Test what happens if other threads exit before unblock. */
 		if (sleepunblock)
 			sleep(1);
 
 		/* Also unblock SIGUSER2, if this thread should get it. */
 		if (pthread_sigmask(SIG_UNBLOCK, &set, NULL) == -1)
-			err(1, "pthread_sigmask");
+			err(1, "pthread_sigmask thread %d", tnum);
 	}
 
 	return (void *)0;

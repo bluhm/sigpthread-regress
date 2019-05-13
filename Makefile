@@ -333,6 +333,88 @@ run-thread-3-sleep-unblock:
 	grep 'signal [0-2]' out
 	test `wc -l <out` = 1
 
+#XXX
+
+.for t in 0 1 2
+
+REGRESS_TARGETS +=	run-block-thread-3-waiter-$t
+run-block-thread-3-waiter-$t:
+	@echo '\n======== $@ ========'
+	# block signal
+	# run 3 threads
+	# kill process
+	# wait for signal in thread $t
+	# suspend threads until signaled
+	./sigpthread -b -t 3 -w $t >out
+	grep 'signal $t' out
+	test `wc -l <out` = 1
+
+REGRESS_TARGETS +=	run-block-thread-3-sleep-main-waiter-$t
+run-block-thread-3-sleep-main-waiter-$t:
+	@echo '\n======== $@ ========'
+	# block signal
+	# run 3 threads
+	# wait for signal in thread $t
+	# suspend threads until signaled
+	# sleep in main thread, signal should be received while waiting
+	# kill process
+	./sigpthread -b -s -t 3 -w $t >out
+	grep 'signal $t' out
+	test `wc -l <out` = 1
+
+REGRESS_TARGETS +=	run-block-thread-3-waiter-$t-sleep-thread
+run-block-thread-3-sleep-thread-waiter-$t:
+	@echo '\n======== $@ ========'
+	# block signal
+	# run 3 threads
+	# kill process
+	# sleep in threads, signal should be pending when waiting
+	# wait for signal in thread $t
+	# suspend threads until signaled
+	./sigpthread -b -S -t 3 -w $t >out
+	grep 'signal $t' out
+	test `wc -l <out` = 1
+
+REGRESS_TARGETS +=	run-block-thread-3-kill-$t-waiter-$t
+run-block-thread-3-kill-$t-waiter-$t:
+	@echo '\n======== $@ ========'
+	# block signal
+	# run 3 threads
+	# kill thread $t
+	# wait for signal in thread $t
+	# suspend threads until signaled
+	./sigpthread -b -k $t -t 3 -w $t >out
+	grep 'signal $t' out
+	test `wc -l <out` = 1
+
+REGRESS_TARGETS +=	run-block-thread-3-sleep-main-kill-$t-waiter-$t
+run-block-thread-3-sleep-main-kill-$t-waiter-$t:
+	@echo '\n======== $@ ========'
+	# block signal
+	# run 3 threads
+	# wait for signal in thread $t
+	# suspend threads until signaled
+	# sleep in main thread, signal should be received while waiting
+	# kill thread $t
+	./sigpthread -b -k $t -s -t 3 -w $t >out
+	grep 'signal $t' out
+	test `wc -l <out` = 1
+
+REGRESS_TARGETS +=	run-block-thread-3-kill-$t-sleep-thread-waiter-$t
+run-block-thread-3-kill-$t-sleep-thread-waiter-$t:
+	@echo '\n======== $@ ========'
+	# block signal
+	# run 3 threads
+	# kill thread $t
+	# sleep in threads, signal should be pending when waiting
+	# wait for signal in thread $t
+	# suspend threads until signaled
+	./sigpthread -b -k $t -S -t 3 -w $t >out
+	grep 'signal $t' out
+	test `wc -l <out` = 1
+
+.endfor
+
 ${REGRESS_TARGETS}: ${PROG}
 
 .include <bsd.regress.mk>

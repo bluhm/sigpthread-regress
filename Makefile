@@ -159,7 +159,6 @@ run-block-thread-3-kill-$t-sleep-thread:
 	grep 'signal $t' out
 	test `wc -l <out` = 1
 
-# XXX sleeping seems redundant
 REGRESS_TARGETS +=	run-block-thread-3-kill-$t-sleep-unblock
 run-block-thread-3-kill-$t-sleep-unblock:
 	@echo '\n======== $@ ========'
@@ -217,7 +216,6 @@ run-block-thread-3-sleep-thread:
 	grep 'signal [0-2]' out
 	test `wc -l <out` = 1
 
-# XXX sleeping seems redundant
 REGRESS_TARGETS +=	run-block-thread-3-sleep-unblock
 run-block-thread-3-sleep-unblock:
 	@echo '\n======== $@ ========'
@@ -269,7 +267,6 @@ run-thread-3-kill-$t-sleep-thread:
 	grep 'signal $t' out
 	test `wc -l <out` = 1
 
-# XXX sleeping seems redundant
 REGRESS_TARGETS +=	run-thread-3-kill-$t-sleep-unblock
 run-thread-3-kill-$t-sleep-unblock:
 	@echo '\n======== $@ ========'
@@ -320,7 +317,6 @@ run-thread-3-sleep-thread:
 	grep 'signal [0-2]' out
 	test `wc -l <out` = 1
 
-# XXX sleeping seems redundant
 REGRESS_TARGETS +=	run-thread-3-sleep-unblock
 run-thread-3-sleep-unblock:
 	@echo '\n======== $@ ========'
@@ -332,8 +328,6 @@ run-thread-3-sleep-unblock:
 	./sigpthread -t 3 -U >out
 	grep 'signal [0-2]' out
 	test `wc -l <out` = 1
-
-#XXX
 
 .for t in 0 1 2
 

@@ -63,8 +63,8 @@ run-block-thread-3-sleep-unblock-unblock-$t:
 	grep 'signal $t' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-block-thread-3-kill-$k-unblock-$t
-run-block-thread-3-kill-$k-unblock-$t:
+REGRESS_TARGETS +=	run-block-thread-3-kill-$t-unblock-$t
+run-block-thread-3-kill-$t-unblock-$t:
 	@echo '\n======== $@ ========'
 	# block signal
 	# run 3 threads
@@ -76,8 +76,8 @@ run-block-thread-3-kill-$k-unblock-$t:
 	grep 'signal $t' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-block-thread-3-sleep-main-kill-$k-unblock-$t
-run-block-thread-3-sleep-main-kill-$k-unblock-$t:
+REGRESS_TARGETS +=	run-block-thread-3-sleep-main-kill-$t-unblock-$t
+run-block-thread-3-sleep-main-kill-$t-unblock-$t:
 	@echo '\n======== $@ ========'
 	# block signal
 	# run 3 threads
@@ -90,8 +90,8 @@ run-block-thread-3-sleep-main-kill-$k-unblock-$t:
 	grep 'signal $t' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-block-thread-3-kill-$k-sleep-thread-unblock-$t
-run-block-thread-3-kill-$k-sleep-thread-unblock-$t:
+REGRESS_TARGETS +=	run-block-thread-3-kill-$t-sleep-thread-unblock-$t
+run-block-thread-3-kill-$t-sleep-thread-unblock-$t:
 	@echo '\n======== $@ ========'
 	# block signal
 	# run 3 threads
@@ -104,12 +104,12 @@ run-block-thread-3-kill-$k-sleep-thread-unblock-$t:
 	grep 'signal $t' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-block-thread-3-kill-$k-unblock-$t-sleep-unblock
-run-block-thread-3-kill-$k-unblock-$t-sleep-unblock:
+REGRESS_TARGETS +=	run-block-thread-3-kill-$t-unblock-$t-sleep-unblock
+run-block-thread-3-kill-$t-unblock-$t-sleep-unblock:
 	@echo '\n======== $@ ========'
 	# block signal
 	# run 3 threads
-	# kill thread $k
+	# kill thread $t
 	# suspend threads until signaled
 	# sleep in thread $t, others should be exited when unblocking
 	# unblock thread $t
@@ -118,8 +118,8 @@ run-block-thread-3-kill-$k-unblock-$t-sleep-unblock:
 	grep 'signal $t' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-block-thread-3-kill-$k
-run-block-thread-3-kill-$k:
+REGRESS_TARGETS +=	run-block-thread-3-kill-$t
+run-block-thread-3-kill-$t:
 	@echo '\n======== $@ ========'
 	# block signal
 	# run 3 threads
@@ -131,8 +131,8 @@ run-block-thread-3-kill-$k:
 	grep 'signal $t' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-block-thread-3-sleep-main-kill-$k
-run-block-thread-3-sleep-main-kill-$k:
+REGRESS_TARGETS +=	run-block-thread-3-sleep-main-kill-$t
+run-block-thread-3-sleep-main-kill-$t:
 	@echo '\n======== $@ ========'
 	# block signal
 	# run 3 threads
@@ -145,8 +145,8 @@ run-block-thread-3-sleep-main-kill-$k:
 	grep 'signal $t' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-block-thread-3-kill-$k-sleep-thread
-run-block-thread-3-kill-$k-sleep-thread:
+REGRESS_TARGETS +=	run-block-thread-3-kill-$t-sleep-thread
+run-block-thread-3-kill-$t-sleep-thread:
 	@echo '\n======== $@ ========'
 	# block signal
 	# run 3 threads
@@ -160,12 +160,12 @@ run-block-thread-3-kill-$k-sleep-thread:
 	test `wc -l <out` = 1
 
 # XXX sleeping seems redundant
-REGRESS_TARGETS +=	run-block-thread-3-kill-$k-sleep-unblock
-run-block-thread-3-kill-$k-sleep-unblock:
+REGRESS_TARGETS +=	run-block-thread-3-kill-$t-sleep-unblock
+run-block-thread-3-kill-$t-sleep-unblock:
 	@echo '\n======== $@ ========'
 	# block signal
 	# run 3 threads
-	# kill thread $k
+	# kill thread $t
 	# suspend threads until signaled
 	# sleep in all threads
 	# unblock all threads
@@ -234,8 +234,8 @@ run-block-thread-3-sleep-unblock:
 
 .for t in 0 1 2
 
-REGRESS_TARGETS +=	run-thread-3-kill-$k
-run-thread-3-kill-$k:
+REGRESS_TARGETS +=	run-thread-3-kill-$t
+run-thread-3-kill-$t:
 	@echo '\n======== $@ ========'
 	# run 3 threads
 	# kill thread $t
@@ -245,8 +245,8 @@ run-thread-3-kill-$k:
 	grep 'signal $t' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-thread-3-sleep-main-kill-$k
-run-thread-3-sleep-main-kill-$k:
+REGRESS_TARGETS +=	run-thread-3-sleep-main-kill-$t
+run-thread-3-sleep-main-kill-$t:
 	@echo '\n======== $@ ========'
 	# run 3 threads
 	# suspend threads until signaled
@@ -257,8 +257,8 @@ run-thread-3-sleep-main-kill-$k:
 	grep 'signal $t' out
 	test `wc -l <out` = 1
 
-REGRESS_TARGETS +=	run-thread-3-kill-$k-sleep-thread
-run-thread-3-kill-$k-sleep-thread:
+REGRESS_TARGETS +=	run-thread-3-kill-$t-sleep-thread
+run-thread-3-kill-$t-sleep-thread:
 	@echo '\n======== $@ ========'
 	# run 3 threads
 	# kill thread $t
@@ -270,11 +270,11 @@ run-thread-3-kill-$k-sleep-thread:
 	test `wc -l <out` = 1
 
 # XXX sleeping seems redundant
-REGRESS_TARGETS +=	run-thread-3-kill-$k-sleep-unblock
-run-thread-3-kill-$k-sleep-unblock:
+REGRESS_TARGETS +=	run-thread-3-kill-$t-sleep-unblock
+run-thread-3-kill-$t-sleep-unblock:
 	@echo '\n======== $@ ========'
 	# run 3 threads
-	# kill thread $k
+	# kill thread $t
 	# handle signal
 	# suspend threads until signaled
 	# sleep in all threads

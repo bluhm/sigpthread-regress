@@ -409,6 +409,33 @@ run-block-thread-3-kill-$t-sleep-thread-waiter-$t:
 
 .endfor
 
+# simple tests with much more threads
+
+REGRESS_TARGETS +=	run-block-thread-100-unblock-23
+run-block-thread-100-unblock-23:
+	@echo '\n======== $@ ========'
+	# block signal
+	# run 100 threads
+	# kill process
+	# suspend threads until signaled
+	# unblock thread 23
+	# handle signal
+	./sigpthread -b -t 100 -u 23 >out
+	grep 'signal 23' out
+	test `wc -l <out` = 1
+
+REGRESS_TARGETS +=	run-block-thread-100-waiter-42
+run-block-thread-100-waiter-42:
+	@echo '\n======== $@ ========'
+	# block signal
+	# run 100 threads
+	# kill process
+	# wait for signal in thread 42
+	# suspend threads until signaled
+	./sigpthread -b -t 100 -w 42 >out
+	grep 'signal 42' out
+	test `wc -l <out` = 1
+
 ${REGRESS_TARGETS}: ${PROG}
 
 .include <bsd.regress.mk>

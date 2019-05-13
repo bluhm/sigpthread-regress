@@ -32,7 +32,8 @@ void *runner(void *);
 void __dead
 usage(void)
 {
-	fprintf(stderr, "sigpthread [-bSsU] [-k kill] -t threads [-u unblock]\n"
+	fprintf(stderr, "sigpthread [-bSsU] [-k kill] -t threads [-u unblock] "
+	    "[-w waiter]\n"
 	    "    -b             block signal to make it pending\n"
 	    "    -k kill        thread to kill, else process\n"
 	    "    -S             sleep in each thread before suspend\n"
@@ -40,12 +41,13 @@ usage(void)
 	    "    -t threads     number of threads to run\n"
 	    "    -U             sleep in thread before unblock\n"
 	    "    -u unblock     thread to unblock, else unblock all\n"
+	    "    -w waiter      use sigwait in thread\n"
 	);
 	exit(1);
 }
 
 int blocksignal = 0;
-int threadmax, threadunblock = -1;
+int threadmax, threadunblock = -1, threadwaiter = -1;
 int sleepthread, sleepmain, sleepunblock;
 sigset_t set, oset;
 pthread_t *threads;
@@ -60,7 +62,7 @@ main(int argc, char *argv[])
 	void *val;
 	const char *errstr;
 
-	while ((ch = getopt(argc, argv, "bk:Sst:Uu:")) != -1) {
+	while ((ch = getopt(argc, argv, "bk:Sst:Uu:w:")) != -1) {
 		switch (ch) {
 		case 'b':
 			blocksignal = 1;
@@ -92,6 +94,12 @@ main(int argc, char *argv[])
 				errx(1, "thread to unblock is %s: %s",
 				    errstr, optarg);
 			break;
+		case 'w':
+			threadwaiter = strtonum(optarg, 0, INT_MAX, &errstr);
+			if (errstr != NULL)
+				errx(1, "thread to wait is %s: %s",
+				    errstr, optarg);
+			break;
 		default:
 			usage();
 		}
@@ -106,6 +114,14 @@ main(int argc, char *argv[])
 		errx(1, "thread to kill greater than number of threads");
 	if (threadunblock >= threadmax)
 		errx(1, "thread to unblock greater than number of threads");
+	if (threadwaiter >= threadmax)
+		errx(1, "thread to wait greater than number of threads");
+	if (!blocksignal && threadunblock >= 0)
+		errx(1, "do not unblock thread without blocked signals");
+	if (!blocksignal && threadwaiter >= 0)
+		errx(1, "do not wait in thread without blocked signals");
+	if (threadunblock >= 0 && threadwaiter >= 0)
+		errx(1, "do not unblock and wait together");
 
 	/* Make sure that we do not hang forever. */
 	ret = alarm(10);
@@ -124,14 +140,15 @@ main(int argc, char *argv[])
 	/* Block both SIGUSR1 and SIGUSR2 with set. */
 	if (sigprocmask(SIG_BLOCK, &set, &oset) == -1)
 		err(1, "sigprocmask");
+
 	/* Prepare to wait for SIGUSR1, but block SIGUSR2 with oset. */
 	if (sigaddset(&oset, SIGUSR2) == -1)
 		err(1, "sigaddset");
-	if (!blocksignal) {
-		/* SIGUSR2 may be blocked by oset, make sure it unblocks. */
-		if (sigaddset(&set, SIGUSR2) == -1)
-			err(1, "sigaddset");
-	}
+	/* Unblock or wait for SIGUSR2 */
+	if (sigemptyset(&set) == -1)
+		err(1, "sigemptyset");
+	if (sigaddset(&set, SIGUSR2) == -1)
+		err(1, "sigaddset");
 
 	memset(&act, 0, sizeof(act));
 	act.sa_handler = handler;
@@ -232,6 +249,16 @@ runner(void *arg)
 	/* Test what happens if thread is running when killed. */
 	if (sleepthread)
 		sleep(1);
+
+	if (tnum == threadwaiter) {
+		int sig;
+
+		if (sigwait(&set, &sig) != 0)
+			err(1, "sigwait");
+		if (sig != SIGUSR2)
+			errx(1, "unexpected signal %d thread %d", sig, tnum);
+		signaled[tnum]++;
+	}
 
 	/*
 	 * Wait for SIGUSER1, continue to block SIGUSER2.

@@ -6,6 +6,8 @@ LDADD =		-lpthread
 DPADD =		${LIBPTHREAD}
 CLEANFILES +=	out
 
+# first test signal delivery while they are blocked
+
 .for t in 0 1 2
 
 REGRESS_TARGETS +=	run-block-thread-3-unblock-$t
@@ -230,6 +232,8 @@ run-block-thread-3-sleep-unblock:
 	grep 'signal [0-2]' out
 	test `wc -l <out` = 1
 
+# check what happens if signals are not blocked but delivered immediately
+
 .for t in 0 1 2
 
 REGRESS_TARGETS +=	run-thread-3-kill-$t
@@ -328,6 +332,8 @@ run-thread-3-sleep-unblock:
 	./sigpthread -t 3 -U >out
 	grep 'signal [0-2]' out
 	test `wc -l <out` = 1
+
+# signals are blocked and received by sigwait
 
 .for t in 0 1 2
 
